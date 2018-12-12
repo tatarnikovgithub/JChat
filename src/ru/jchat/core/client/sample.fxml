@@ -1,0 +1,19 @@
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.PasswordField?>
+<VBox fx:controller="ru.jchat.core.client.Controller"
+      xmlns:fx="http://javafx.com/fxml" alignment="center">
+    <HBox fx:id="authPanel">
+        <TextField fx:id="loginField" promptText="Логин" HBox.hgrow="ALWAYS"/>
+        <PasswordField fx:id="passField" promptText="Пароль" onAction="#sendAuthMsg"/>
+        <Button text="Авторизоваться" onAction="#sendAuthMsg"/>
+    </HBox>
+    <TextArea fx:id="textArea" editable="false" VBox.vgrow="ALWAYS"/>
+    <HBox fx:id="msgPanel">
+        <TextField fx:id="msgField" promptText="Написать сообщение" HBox.hgrow="ALWAYS" onAction="#sendMsg"/>
+        <Button text="Отправить" onAction="#sendMsg"/>
+    </HBox>
+</VBox>
