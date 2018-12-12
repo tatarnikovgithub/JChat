@@ -51,6 +51,14 @@ public class Server {
         return false;
     }
 
+    public void sendPrivateMsg(String nick, String message) {
+        for (ClientHandler o : clients) {
+            if (o.getNick().equals(nick)) {
+                o.sendMsg(message);
+            }
+        }
+    }
+
     public void broadcastMsg(String msg){
         for (ClientHandler o: clients){
             o.sendMsg(msg);

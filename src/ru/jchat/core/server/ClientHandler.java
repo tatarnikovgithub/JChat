@@ -1,8 +1,5 @@
 package ru.jchat.core.server;
 
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -51,6 +48,14 @@ public class ClientHandler {
                         System.out.println(nick + ": " + msg);
                         if (msg.startsWith("/")){
                             if (msg.equals("/end")) break;
+                            if (msg.startsWith("/w")) {
+                                try {
+                                    String[] parsedMsg = parseMsg(msg);
+                                    server.sendPrivateMsg(parsedMsg[0], parsedMsg[1]);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         } else {
                             server.broadcastMsg(nick + ": " + msg);
                         }
@@ -80,5 +85,25 @@ public class ClientHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String[] parseMsg(String msg) throws Exception {
+        int nickStart;
+        for (nickStart = 2; nickStart < msg.length(); nickStart++) {
+            if (msg.charAt(nickStart) != ' ') {
+                break;
+            }
+        }
+        if (nickStart == msg.length()) {
+            throw new Exception("Message doesn't contain nickname.");
+        }
+        int nickFinish = msg.indexOf(' ', nickStart);
+        if (nickFinish == -1) {
+            throw new Exception("Message doesn't contain text.");
+        }
+        String[] result = new String[2];
+        result[0] = msg.substring(nickStart, nickFinish);
+        result[1] = msg.substring(nickFinish + 1);
+        return result;
     }
 }
