@@ -15,9 +15,10 @@ public class ClientHandler {
     private DataOutputStream out;
     private String nick;
 
-    public String getNick() {
-        return nick;
-    }
+    public String getNick() {return nick;}
+
+
+    public Socket getSocket() {return socket;}
 
     public ClientHandler(Server server, Socket socket) {
         try {
@@ -51,9 +52,14 @@ public class ClientHandler {
                         System.out.println(nick + ": " + msg);
                         if (msg.startsWith("/")){
                             if (msg.equals("/end")) break;
-                        } else {
-                            server.broadcastMsg(nick + ": " + msg);
+                            if (msg.charAt(1)=='w') {
+                                String[] tmp = msg.split(" ");
+                                //System.out.println(tmp[1]+" !!!");
+                               server.sendMsgByNick(tmp[1], msg);
+                            }
                         }
+                        else
+                            server.broadcastMsg(nick + ": " + msg);
                     }
                 }catch (IOException e){
                     e.printStackTrace();
