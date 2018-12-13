@@ -56,4 +56,12 @@ public class Server {
             o.sendMsg(msg);
         }
     }
+
+    public void sendMsgByNick(String nick, String msg){
+        for (ClientHandler o: clients){
+            if (o.getNick().equals(nick))
+                o.sendMsg(msg);
+        }
+
+    }
 }
