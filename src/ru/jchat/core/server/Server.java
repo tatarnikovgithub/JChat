@@ -4,17 +4,18 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.Vector;
 
-public class Server {
+class Server {
     private Vector<ClientHandler> clients;
     private AuthService authService;
 
-    public AuthService getAuthService() {
+    AuthService getAuthService() {
         return authService;
     }
 
-    public Server(){
+    Server(){
         try(ServerSocket serverSocket = new ServerSocket(8189)){
             clients = new Vector<>();
             authService = new AuthService();
@@ -30,30 +31,48 @@ public class Server {
         } catch (SQLException | ClassNotFoundException e){
             System.out.println("Не удалось запустить сервис авторизации");
         } finally {
-            authService.disconnect();
+            Objects.requireNonNull(authService).disconnect();
         }
     }
 
-    public void subscribe(ClientHandler clientHandler){
+    void subscribe(ClientHandler clientHandler){
         clients.add(clientHandler);
     }
 
-    public void unsubscribe(ClientHandler clientHandler){
+    void unsubscribe(ClientHandler clientHandler){
         clients.remove(clientHandler);
     }
 
-    public boolean isNickBusy(String nick){
+    boolean isNickBusy(String nick){
+        boolean isNickBusy = false;
         for (ClientHandler o: clients){
             if (o.getNick().equals(nick)){
-                return true;
+              isNickBusy = true;
+              break;
             }
         }
-        return false;
+        return isNickBusy;
     }
 
-    public void broadcastMsg(String msg){
+    void broadcastMsg(String msg){
         for (ClientHandler o: clients){
             o.sendMsg(msg);
         }
+    }
+
+    void privateMsg (String toNick, String msg, String sender) throws UnknownClientException {
+      boolean sended = false;
+
+      for (ClientHandler o: clients){
+        if (o.getNick().equals(toNick)){
+          o.sendMsg(String.format("PRIVMSG FROM %s:%n%s", sender, msg));
+          sended = true;
+          break;
+        }
+      }
+
+      if (!sended){
+        throw new UnknownClientException();
+      }
     }
 }
