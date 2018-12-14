@@ -31,18 +31,20 @@ public class ClientHandler {
                         String msg = in.readUTF();
                         if (msg.startsWith("/auth ")){
                             String[] data = msg.split("\\s");
-                            String newNick = server.getAuthService().getNickByLoginAndPass(data[1], data[2]);
-                            if (newNick != null){
-                                if (!server.isNickBusy(newNick)){
-                                    nick = newNick;
-                                    sendMsg("/authok");
-                                    server.subscribe(this);
-                                    break;
+                            if (data.length == 3){
+                                String newNick = server.getAuthService().getNickByLoginAndPass(data[1], data[2]);
+                                if (newNick != null){
+                                    if (!server.isNickBusy(newNick)){
+                                        nick = newNick;
+                                        sendMsg("/authok " + newNick);
+                                        server.subscribe(this);
+                                        break;
+                                    } else {
+                                        sendMsg("Учетная запись уже занята");
+                                    }
                                 } else {
-                                    sendMsg("Учетная запись уже занята");
+                                    sendMsg("Неверный логин/пароль");
                                 }
-                            } else {
-                                sendMsg("Неверный логин/пароль");
                             }
                         }
                     }
@@ -51,6 +53,10 @@ public class ClientHandler {
                         System.out.println(nick + ": " + msg);
                         if (msg.startsWith("/")){
                             if (msg.equals("/end")) break;
+                            if (msg.startsWith("/w ")){ // /w nick1 hello java
+                                String[] data = msg.split("\\s", 3);
+                                server.sendPrivateMsg(this, data[1], data[2]);
+                            }
                         } else {
                             server.broadcastMsg(nick + ": " + msg);
                         }

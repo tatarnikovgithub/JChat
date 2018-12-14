@@ -29,6 +29,7 @@ public class Server {
             e.printStackTrace();
         } catch (SQLException | ClassNotFoundException e){
             System.out.println("Не удалось запустить сервис авторизации");
+            e.printStackTrace();
         } finally {
             authService.disconnect();
         }
@@ -36,10 +37,13 @@ public class Server {
 
     public void subscribe(ClientHandler clientHandler){
         clients.add(clientHandler);
+        broadcastClientsList();
+
     }
 
     public void unsubscribe(ClientHandler clientHandler){
         clients.remove(clientHandler);
+        broadcastClientsList();
     }
 
     public boolean isNickBusy(String nick){
@@ -54,6 +58,28 @@ public class Server {
     public void broadcastMsg(String msg){
         for (ClientHandler o: clients){
             o.sendMsg(msg);
+        }
+    }
+
+    public void sendPrivateMsg(ClientHandler from, String nickTo, String msg){
+        for(ClientHandler o: clients){
+            if (o.getNick().equals(nickTo)){
+                o.sendMsg("от " + from.getNick() + ": " + msg);
+                from.sendMsg("клиенту " + nickTo + ": " + msg);
+                return;
+            }
+        }
+        from.sendMsg("Клиент с ником " + nickTo + " не найден");
+    }
+
+    public void broadcastClientsList(){
+        StringBuilder sb = new StringBuilder("/clientslist ");
+        for (ClientHandler o: clients){
+            sb.append(o.getNick() + " ");
+        }
+        String out = sb.toString();
+        for (ClientHandler o: clients){
+            o.sendMsg(out);
         }
     }
 }
