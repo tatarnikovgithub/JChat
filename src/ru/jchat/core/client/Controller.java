@@ -1,13 +1,14 @@
 package ru.jchat.core.client;
 
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.util.Callback;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -29,6 +30,8 @@ public class Controller implements Initializable{
     TextField loginField;
     @FXML
     PasswordField passField;
+    @FXML
+    ListView<String> clientsListView;
 
     private Socket socket;
     private DataOutputStream out;
@@ -38,6 +41,9 @@ public class Controller implements Initializable{
     final int SERVER_PORT = 8189;
 
     private boolean authorized;
+    private String myNick;
+
+    private ObservableList<String> clientsList;
 
     public void setAuthorized(boolean authorized) {
         this.authorized = authorized;
@@ -46,11 +52,16 @@ public class Controller implements Initializable{
             msgPanel.setManaged(true);
             authPanel.setVisible(false);
             authPanel.setManaged(false);
+            clientsListView.setVisible(true);
+            clientsListView.setManaged(true);
         } else {
             msgPanel.setVisible(false);
             msgPanel.setManaged(false);
             authPanel.setVisible(true);
             authPanel.setManaged(true);
+            clientsListView.setVisible(false);
+            clientsListView.setManaged(false);
+            myNick = "";
         }
     }
 
@@ -64,18 +75,53 @@ public class Controller implements Initializable{
             socket = new Socket(SERVER_IP, SERVER_PORT);
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
+            clientsList = FXCollections.observableArrayList();
+            clientsListView.setItems(clientsList);
+
+            clientsListView.setCellFactory(new Callback<ListView<String>, ListCell<String>>() {
+                @Override
+                public ListCell<String> call(ListView<String> param) {
+                    return new ListCell<String>(){
+                        @Override
+                        protected void updateItem(String item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (!empty){
+                                setText(item);
+                                if (item.equals(myNick)){
+                                    setStyle("-fx-font-weight: bold; -fx-background-color: #00ff00;");
+                                }
+                            } else {
+                                setGraphic(null);
+                                setText(null);
+                            }
+                        }
+                    };
+                }
+            });
             Thread t = new Thread(() -> {
                 try {
                     while(true){
                         String s = in.readUTF();
-                        if (s.equals("/authok")){
+                        if (s.startsWith("/authok ")){
                             setAuthorized(true);
+                            myNick = s.split("\\s")[1];
                             break;
                         }
                         textArea.appendText(s + "\n");
                     }
                     while (true) {
                         String s = in.readUTF();
+                        if (s.startsWith("/")){
+                            if (s.startsWith("/clientslist ")){
+                                String[] data = s.split("\\s");
+                                Platform.runLater(() -> {
+                                    clientsList.clear();
+                                    for (int i = 1; i < data.length; i++) {
+                                        clientsList.addAll(data[i]);
+                                    }
+                                });
+                            }
+                        }
                         textArea.appendText(s + "\n");
                     }
                 } catch (IOException e) {
@@ -97,6 +143,10 @@ public class Controller implements Initializable{
     }
 
     public void sendAuthMsg(){
+        if (loginField.getText().isEmpty() || passField.getText().isEmpty()){
+            showAlert("Указаны неполные данные авторизации");
+            return;
+        }
         if (socket == null || socket.isClosed()){
             connect();
         }
@@ -129,5 +179,11 @@ public class Controller implements Initializable{
         });
     }
 
-
+    public void clientsListClicked(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 2){
+            msgField.setText("/w " + clientsListView.getSelectionModel().getSelectedItem() + " ");
+            msgField.requestFocus();
+            msgField.selectEnd();
+        }
+    }
 }
