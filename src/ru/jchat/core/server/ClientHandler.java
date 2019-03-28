@@ -1,12 +1,10 @@
 package ru.jchat.core.server;
 
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.SQLException;
 
 public class ClientHandler {
     private Server server;
@@ -20,14 +18,14 @@ public class ClientHandler {
     }
 
     public ClientHandler(Server server, Socket socket) {
-        try {
+        try{
             this.server = server;
             this.socket = socket;
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
             new Thread(() -> {
                 try{
-                    while(true){
+                    while (true){
                         String msg = in.readUTF();
                         if (msg.startsWith("/auth ")){
                             String[] data = msg.split("\\s");
@@ -39,16 +37,18 @@ public class ClientHandler {
                                         sendMsg("/authok " + newNick);
                                         server.subscribe(this);
                                         break;
-                                    } else {
+                                    }
+                                    else {
                                         sendMsg("Учетная запись уже занята");
                                     }
-                                } else {
+                                }
+                                else {
                                     sendMsg("Неверный логин/пароль");
                                 }
                             }
                         }
                     }
-                    while(true){
+                    while (true){
                         String msg = in.readUTF();
                         System.out.println(nick + ": " + msg);
                         if (msg.startsWith("/")){
@@ -57,33 +57,53 @@ public class ClientHandler {
                                 String[] data = msg.split("\\s", 3);
                                 server.sendPrivateMsg(this, data[1], data[2]);
                             }
-                        } else {
+                            if (msg.startsWith("/newnick")){
+                                String newNick = msg.split("\\s", 2)[1];
+                                if (newNick != null && !newNick.trim().isEmpty()){
+                                    if (!server.isNickBusy(newNick)){
+                                        int id = server.getAuthService().getAuthorizedIdByNick(nick);
+                                        if (server.getAuthService().changeNick(id, newNick)){
+                                            nick = newNick;
+                                            server.unsubscribe(this);
+                                            server.subscribe(this);
+                                        }
+                                        else {
+                                            sendMsg("Ошибка смены ника. Возможно, ник уже занят. Попробуйте ещё раз.");
+                                        }
+                                    }
+                                    else {
+                                        sendMsg("Ник занят, введите другой.");
+                                    }
+                                }
+                            }
+                        }
+                        else {
                             server.broadcastMsg(nick + ": " + msg);
                         }
                     }
-                }catch (IOException e){
+                } catch (IOException | SQLException e){
                     e.printStackTrace();
-                }finally {
+                } finally {
                     nick = null;
                     server.unsubscribe(this);
-                    try {
+                    try{
                         socket.close();
-                    } catch (IOException e) {
+                    } catch (IOException e){
                         e.printStackTrace();
                     }
                 }
 
             }).start();
 
-        } catch (IOException e) {
+        } catch (IOException e){
             e.printStackTrace();
         }
     }
 
-    public void sendMsg(String msg){
-        try {
+    public void sendMsg(String msg) {
+        try{
             out.writeUTF(msg);
-        } catch (IOException e) {
+        } catch (IOException e){
             e.printStackTrace();
         }
     }
